@@ -1,0 +1,856 @@
+/*************************************************** 
+  This is an example for our Adafruit 16-channel PWM & Servo driver
+  Servo test - this will drive 16 servos, one after the other
+
+  Pick one up today in the adafruit shop!
+  ------> http://www.adafruit.com/products/815
+
+  These displays use I2C to communicate, 2 pins are required to  
+  interface. For Arduino UNOs, thats SCL -> Analog 5, SDA -> Analog 4
+
+  Adafruit invests time and resources providing this open source code, 
+  please support Adafruit and open-source hardware by purchasing 
+  products from Adafruit!
+
+  Written by Limor Fried/Ladyada for Adafruit Industries.  
+  BSD license, all text above must be included in any redistribution
+ ****************************************************/
+
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
+
+// called this way, it uses the default address 0x40
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+// you can also call it with a different address you want
+//Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x41);
+
+// Depending on your servo make, the pulse width min and max may vary, you 
+// want these to be as small/large as possible without hitting the hard stop
+// for max range. You'll have to tweak them as necessary to match the servos you
+// have!
+#define SERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
+#define SERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+
+// our servo # counter
+uint8_t servonum = 0;
+
+// CENTER definition
+#define CENTER 400
+
+// servo num definitions
+#define BRH 0
+#define BRK 1
+#define BRA 2
+
+#define FRH 3 //hfghgh
+#define FRK 4
+#define FRA 5
+
+#define BLH 6
+#define BLK 7
+#define BLA 8
+
+#define FLH 9
+#define FLK 10
+#define FLA 11
+
+
+
+
+// Offset array: Hip Knee Ankle
+int offset[] = {  15,   0, -15,  // BR
+                 -20, -20,   5,  // FR
+                 -20, -20, -25,  // BL
+                  35, -10, -10}; // FL
+
+// New Centers for each servo                             
+int BRHcenter = CENTER + offset[BRH];
+int BRKcenter = CENTER + offset[BRK];
+int BRAcenter = CENTER + offset[BRA];
+
+int FRHcenter = CENTER + offset[FRH];
+int FRKcenter = CENTER + offset[FRK];
+int FRAcenter = CENTER + offset[FRA];
+
+int BLHcenter = CENTER + offset[BLH];
+int BLKcenter = CENTER + offset[BLK];
+int BLAcenter = CENTER + offset[BLA];
+
+int FLHcenter = CENTER + offset[FLH];
+int FLKcenter = CENTER + offset[FLK];
+int FLAcenter = CENTER + offset[FLA];
+
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("Servo Gait File to play with.");
+
+  pwm.begin();
+  
+  pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
+ 
+  for (int i=0; i<12; i++){
+    pwm.setPWM(i, 0, CENTER + offset[i]);
+  }
+  
+}
+
+// you can use this function if you'd like to set the pulse length in seconds
+// e.g. setServoPulse(0, 0.001) is a ~1 millisecond pulse width. its not precise!
+/*
+void setServoPulse(uint8_t n, double pulse) {
+  double pulselength;
+  
+  pulselength = 1000000;   // 1,000,000 us per second
+  pulselength /= 60;   // 60 Hz
+  Serial.print(pulselength); Serial.println(" us per period"); 
+  pulselength /= 4096;  // 12 bits of resolution
+  Serial.print(pulselength); Serial.println(" us per bit"); 
+  pulse *= 1000;
+  pulse /= pulselength;
+  Serial.println(pulse);
+  pwm.setPWM(n, 0, pulse);
+}
+*/
+
+void loop() {
+  
+  if (Serial.available())
+  {
+      char ch = Serial.read();
+      
+      switch(ch) {
+        case'h':
+          Serial.println("Home Position...");
+          homePosition();
+          break;
+        case 'w':
+          Serial.println("It walks!");
+          brianWalk();
+          break;
+        case 'c':
+          Serial.println("Crouching...");
+          crouch();
+          break;
+        case's':
+          Serial.println("Standing...");
+          stand();
+          break;
+        case'q':
+          Serial.println("Scanning To The Left...");
+          scanLeft();
+          break;
+        case'e':
+          Serial.println("Scanning To The Right...");
+          scanRight();
+          break;
+        case'f':
+          Serial.println("Facing Forward...");
+          center();
+          break;
+        case'z':
+          Serial.println("Scanning...");
+          scan();
+          break;
+        case'n':
+          Serial.println("Rotating To The Left...");
+          rotateLeft();
+          break;
+        case'm':
+          Serial.println("Rotating To The Right...");
+          rotateRight();
+          break;
+        case't':
+          Serial.println("Stretching...");
+          stretch();
+          break;
+        case'k':
+          Serial.println("Kneeling...");
+          kneel();
+          break;
+        case'b':
+          Serial.println("Bowing...");
+          bow();
+          break;
+        case'p':
+          Serial.println("Sprawling...");
+          sprawl();
+          break;
+        case'l':
+          Serial.println("Laying Down...");
+          layDown();
+          break;
+        case'd':
+          Serial.println("Docking...");
+          dock();
+          break;
+        case'W':
+          Serial.println("Waving...");
+          wave();
+          break;
+        case'T':
+          Serial.println("Table Top");
+          tableTop();
+          break;
+        case 'S':
+          Serial.println("Front Stroke...");
+          gait();
+          break;
+        case'B':
+          Serial.println("Bust A Move!");
+          dance();
+          break;
+        case'D':
+          Serial.println("BANG!!!");
+          playDead();
+          break;
+        default:
+          Serial.println("Unknown Command.. "); 
+      }
+  }
+  
+}
+
+void gait() {
+   walk();
+   walk();
+   walk();
+}
+void walk() {
+ 
+  //delay(500);
+  
+  //crouch();
+ 
+  //walkStart();
+  
+  //delay(1000);
+  
+  //pwm.setPWM(BLK, 0, (BLKcenter + 150));
+  //delay(200);
+ // pwm.setPWM(BLH, 0, (BLHcenter + 50));
+  //delay(200);
+ // pwm.setPWM(BRK, 0, (BRKcenter + 100));
+  //pwm.setPWM(BRA, 0, (BRAcenter + 100));
+  //pwm.setPWM(BRH, 0, (BRHcenter + 50));   //maybe change
+  //pwm.setPWM(FRK, 0, (FRKcenter + 100));
+  //pwm.setPWM(FRA, 0, (FRAcenter + 100));
+  
+  //pwm.setPWM(FLK, 0, (FLKcenter + 75));
+  //pwm.setPWM(FLA, 0, (FLAcenter + 50));
+  
+
+ // pwm.setPWM(BLK, 0, (BLKcenter + 75));
+ // pwm.setPWM(BLA, 0, (BLAcenter));
+
+  delay (200);
+  pwm.setPWM(BRK, 0, (BRKcenter + 100));
+  delay(100);
+  pwm.setPWM(BRH, 0, (BRHcenter + 100));
+  delay(100);
+  pwm.setPWM(BRK, 0, (BRKcenter));
+
+  delay (200);
+  pwm.setPWM(FLK, 0, (FLKcenter + 100));
+  delay(100);
+  pwm.setPWM(FLH, 0, (FLHcenter - 100));
+  delay(100);
+  pwm.setPWM(FLK, 0, (FLKcenter));
+  
+  delay (200);
+  pwm.setPWM(BLK, 0, (BLKcenter + 100));
+  delay(100);
+  pwm.setPWM(BLH, 0, (BLHcenter - 100));
+  delay(100);
+  pwm.setPWM(BLK, 0, (BLKcenter));
+  
+  delay (200);
+  pwm.setPWM(FRK, 0, (FRKcenter + 100));
+  delay(100);
+  pwm.setPWM(FRH, 0, (FRHcenter + 100));
+  delay(100);
+  pwm.setPWM(FRK, 0, (FRKcenter));
+  
+  delay (200);
+  center();
+  delay(200);
+}
+
+void walkStart() {
+  delay(500);
+  
+  pwm.setPWM(BLK, 0, (BLKcenter + 150));
+  delay(100);
+  pwm.setPWM(BLH, 0, (BLHcenter + 50));
+  delay(100);
+  pwm.setPWM(BLK, 0, (BLKcenter + 100));
+  delay(100);
+  pwm.setPWM(BRK, 0, (BRKcenter + 150));
+  pwm.setPWM(BRA, 0, (BRAcenter - 100));
+  
+  delay(500);
+  
+  pwm.setPWM(BRH, 0, (BRHcenter + 125));
+  
+  delay(500);
+  
+  pwm.setPWM(BRK, 0, (BRKcenter + 75));
+  pwm.setPWM(BRA, 0, (BRAcenter));
+
+  delay(500);
+  
+  pwm.setPWM(FRK, 0, (FRKcenter + 150));
+  pwm.setPWM(FRA, 0, (FRAcenter - 100));
+  
+  delay(500);
+  
+  pwm.setPWM(FRK, 0, (FRKcenter + 75));
+  pwm.setPWM(FRA, 0, (FRAcenter));
+}
+
+/******************************************************
+* Brian walk test code
+******************************************************/
+void brianWalk() {
+
+    delay(1000);
+    walk2();
+    walk2();
+    walk2();
+    walk2();
+    
+    // GO HOME
+    homePosition();
+}
+
+void walk2() {
+
+  // Raise Front right foot
+  pwm.setPWM(FRK, 0, (FRKcenter + 75));
+  delay(100);
+  // Rotate FR leg forward
+  pwm.setPWM(FRH, 0, (FRHcenter + 25));
+  pwm.setPWM(FRA, 0, (FRAcenter - 75));
+  delay(100);
+  // put FR foot down
+  pwm.setPWM(FRK, 0, (FRKcenter - 35));
+  pwm.setPWM(BLA, 0, (BRAcenter + 10));
+  pwm.setPWM(BLK, 0, (BLKcenter - 10));
+ 
+  delay(100);
+  // Shift body to FR
+  pwm.setPWM(BLA, 0, (BRAcenter - 90));
+  pwm.setPWM(FRA, 0, (FRAcenter));
+  pwm.setPWM(FRK, 0, (FRKcenter));
+  pwm.setPWM(FLH, 0, (FLHcenter + 75));
+  pwm.setPWM(BRH, 0, (BRHcenter - 75));
+  delay(100);
+  pwm.setPWM(BLK, 0, (BRKcenter - 45));
+  delay(100);
+  // raise BL foot
+  pwm.setPWM(BLK, 0, (BLKcenter + 75));
+  delay(100);
+  // rotate BL leg forward
+  pwm.setPWM(BLH, 0, (BLHcenter - 75));
+  delay(100);
+  // put BL leg back down
+  pwm.setPWM(BLK, 0, (BLKcenter - 35));
+  pwm.setPWM(BLA, 0, (BLAcenter));
+  delay(100);
+  // Lift FL leg
+  pwm.setPWM(FLK, 0, (FLKcenter + 75));
+  delay(100);
+  // Rotate FL leg forward
+  pwm.setPWM(FLH, 0, (FLHcenter - 75));
+  pwm.setPWM(FLA, 0, (FLAcenter - 75));
+  delay(100);
+  // Put FL leg down
+  pwm.setPWM(FLK, 0, (FLKcenter - 35));
+  delay(100);
+                                        
+  //Shift towards FL
+  pwm.setPWM(FLA, 0, (FLAcenter));
+  pwm.setPWM(FLK, 0, (FLKcenter));
+  pwm.setPWM(BRK, 0, (BRKcenter - 45));
+  pwm.setPWM(BRA, 0, (BRAcenter - 90));
+  pwm.setPWM(BLH, 0, (BLHcenter));
+  pwm.setPWM(FRH, 0, (FRHcenter - 75));
+  delay(100);
+  // lift BR leg
+  pwm.setPWM(BRK, 0, (BRKcenter + 75));
+  delay(100);
+  // Rotate BR leg forward
+  pwm.setPWM(BRH, 0, (BRHcenter + 75));
+  delay(100);
+  // put BR leg down
+  pwm.setPWM(BRK, 0, (BRKcenter - 35));
+  pwm.setPWM(BRA, 0, (BRAcenter));
+  delay(100);
+  
+}
+
+void homePosition() {
+  delay(200);
+  pwm.setPWM(BLK, 0, (BLKcenter));
+  pwm.setPWM(BLA, 0, (BLAcenter));
+  pwm.setPWM(BLH, 0, (BLHcenter));
+  pwm.setPWM(FLK, 0, (FLKcenter));
+  pwm.setPWM(FLA, 0, (FLAcenter));
+  pwm.setPWM(FLH, 0, (FLHcenter));
+  pwm.setPWM(BRK, 0, (BRKcenter));
+  pwm.setPWM(BRA, 0, (BRAcenter));
+  pwm.setPWM(BRH, 0, (BRHcenter));
+  pwm.setPWM(FRK, 0, (FRKcenter));
+  pwm.setPWM(FRA, 0, (FRAcenter));
+  pwm.setPWM(FRH, 0, (FRHcenter)); 
+}
+
+void stand() {
+  crouch();
+  delay(500);
+  pwm.setPWM(BLK, 0, (BLKcenter));
+  pwm.setPWM(BLA, 0, (BLAcenter));
+  pwm.setPWM(FLK, 0, (FLKcenter));
+  pwm.setPWM(FLA, 0, (FLAcenter));
+  pwm.setPWM(BRK, 0, (BRKcenter));
+  pwm.setPWM(BRA, 0, (BRAcenter));
+  pwm.setPWM(FRK, 0, (FRKcenter));
+  pwm.setPWM(FRA, 0, (FRAcenter)); 
+}
+
+void crouch() {
+  delay(200);
+  pwm.setPWM(BLK, 0, (BLKcenter + 100));
+  pwm.setPWM(BLA, 0, (BLAcenter + 100));
+  pwm.setPWM(FLK, 0, (FLKcenter + 100));
+  pwm.setPWM(FLA, 0, (FLAcenter + 100));
+  pwm.setPWM(BRK, 0, (BRKcenter + 100));
+  pwm.setPWM(BRA, 0, (BRAcenter + 100));
+  pwm.setPWM(FRK, 0, (FRKcenter + 100));
+  pwm.setPWM(FRA, 0, (FRAcenter + 100));
+}
+
+void scanLeft() {
+  delay(200);
+  pwm.setPWM(FLH, 0, (FLHcenter - 200));
+  pwm.setPWM(BLH, 0, (BLHcenter - 200));
+  pwm.setPWM(FRH, 0, (FRHcenter - 200));
+  pwm.setPWM(BRH, 0, (BRHcenter - 200));
+}
+
+void scanRight() {
+  delay(200);
+  pwm.setPWM(FLH, 0, (FLHcenter + 200));
+  pwm.setPWM(BLH, 0, (BLHcenter + 200));
+  pwm.setPWM(FRH, 0, (FRHcenter + 200));
+  pwm.setPWM(BRH, 0, (BRHcenter + 200));
+}
+
+void center() {
+  delay(200);
+  pwm.setPWM(FLH, 0, (FLHcenter));
+  pwm.setPWM(BLH, 0, (BLHcenter));
+  pwm.setPWM(FRH, 0, (FRHcenter));
+  pwm.setPWM(BRH, 0, (BRHcenter));
+}
+
+void scan() {
+  delay(200);
+  scanLeft();
+  delay(250);
+  scanRight();
+  delay(500);
+  scanLeft();
+  delay(500);
+  scanRight();
+  delay(500);
+  center();
+}
+
+void rotateLeft() {
+  delay(200);
+  pwm.setPWM(BRK, 0, (BRKcenter + 100));
+  pwm.setPWM(FLK, 0, (FLKcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BRH, 0, (BRHcenter + 100));
+  pwm.setPWM(FLH, 0, (FLHcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BRK, 0, (BRKcenter));
+  pwm.setPWM(FLK, 0, (FLKcenter));
+  
+  delay(200);
+  pwm.setPWM(BLK, 0, (BLKcenter + 100));
+  pwm.setPWM(FRK, 0, (FRKcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BLH, 0, (BLHcenter + 100));
+  pwm.setPWM(FRH, 0, (FRHcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BLK, 0, (BLKcenter));
+  pwm.setPWM(FRK, 0, (FRKcenter));
+  
+  delay(200);
+  pwm.setPWM(BRH, 0, (BRHcenter - 100));
+  pwm.setPWM(FLH, 0, (FLHcenter - 100));
+  pwm.setPWM(BLH, 0, (BLHcenter - 100));
+  pwm.setPWM(FRH, 0, (FRHcenter - 100));
+  
+  delay(200);
+  pwm.setPWM(BRK, 0, (BRKcenter + 100));
+  pwm.setPWM(FLK, 0, (FLKcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BRH, 0, (BRHcenter + 100));
+  pwm.setPWM(FLH, 0, (FLHcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BRK, 0, (BRKcenter));
+  pwm.setPWM(FLK, 0, (FLKcenter));
+  
+  delay(200);
+  pwm.setPWM(BLK, 0, (BLKcenter + 100));
+  pwm.setPWM(FRK, 0, (FRKcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BLH, 0, (BLHcenter + 100));
+  pwm.setPWM(FRH, 0, (FRHcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BLK, 0, (BLKcenter));
+  pwm.setPWM(FRK, 0, (FRKcenter));
+  
+  delay(200);
+  pwm.setPWM(BRH, 0, (BRHcenter));
+  pwm.setPWM(FLH, 0, (FLHcenter));
+  pwm.setPWM(BLH, 0, (BLHcenter));
+  pwm.setPWM(FRH, 0, (FRHcenter));
+}
+
+void rotateRight() {
+  delay(200);
+  pwm.setPWM(BRK, 0, (BRKcenter + 100));
+  pwm.setPWM(FLK, 0, (FLKcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BRH, 0, (BRHcenter - 100));
+  pwm.setPWM(FLH, 0, (FLHcenter - 100));
+  
+  delay(150);
+  pwm.setPWM(BRK, 0, (BRKcenter));
+  pwm.setPWM(FLK, 0, (FLKcenter));
+  
+  delay(200);
+  pwm.setPWM(BLK, 0, (BLKcenter + 100));
+  pwm.setPWM(FRK, 0, (FRKcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BLH, 0, (BLHcenter - 100));
+  pwm.setPWM(FRH, 0, (FRHcenter - 100));
+  
+  delay(150);
+  pwm.setPWM(BLK, 0, (BLKcenter));
+  pwm.setPWM(FRK, 0, (FRKcenter));
+  
+  delay(200);
+  pwm.setPWM(BRH, 0, (BRHcenter + 100));
+  pwm.setPWM(FLH, 0, (FLHcenter + 100));
+  pwm.setPWM(BLH, 0, (BLHcenter + 100));
+  pwm.setPWM(FRH, 0, (FRHcenter + 100));
+  
+  
+  delay(200);
+  pwm.setPWM(BRK, 0, (BRKcenter + 100));
+  pwm.setPWM(FLK, 0, (FLKcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BRH, 0, (BRHcenter - 100));
+  pwm.setPWM(FLH, 0, (FLHcenter - 100));
+  
+  delay(150);
+  pwm.setPWM(BRK, 0, (BRKcenter));
+  pwm.setPWM(FLK, 0, (FLKcenter));
+  
+  delay(200);
+  pwm.setPWM(BLK, 0, (BLKcenter + 100));
+  pwm.setPWM(FRK, 0, (FRKcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BLH, 0, (BLHcenter - 100));
+  pwm.setPWM(FRH, 0, (FRHcenter - 100));
+  
+  delay(150);
+  pwm.setPWM(BLK, 0, (BLKcenter));
+  pwm.setPWM(FRK, 0, (FRKcenter));
+  
+  delay(200);
+  pwm.setPWM(BRH, 0, (BRHcenter));
+  pwm.setPWM(FLH, 0, (FLHcenter));
+  pwm.setPWM(BLH, 0, (BLHcenter));
+  pwm.setPWM(FRH, 0, (FRHcenter));
+}
+
+void tableTop(){
+  crouch();
+  delay(200);
+  delay(200);
+  pwm.setPWM(BRK, 0, (BRKcenter + 100));
+  pwm.setPWM(FLK, 0, (FLKcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BRH, 0, (BRHcenter - 100));
+  pwm.setPWM(FLH, 0, (FLHcenter - 100));
+  
+  delay(150);
+  pwm.setPWM(BRK, 0, (BRKcenter));
+  pwm.setPWM(FLK, 0, (FLKcenter));
+  
+  delay(200);
+  pwm.setPWM(BLK, 0, (BLKcenter + 100));
+  pwm.setPWM(FRK, 0, (FRKcenter + 100));
+  
+  delay(150);
+  pwm.setPWM(BLH, 0, (BLHcenter - 100));
+  pwm.setPWM(FRH, 0, (FRHcenter - 100));
+  
+  delay(150);
+  pwm.setPWM(BLK, 0, (BLKcenter));
+  pwm.setPWM(FRK, 0, (FRKcenter));
+  
+  center();
+}
+
+void stretch() {
+  crouch();
+  delay(1000);
+  pwm.setPWM(BRK, 0, (BRKcenter - 120));
+  pwm.setPWM(FLK, 0, (FLKcenter - 120));
+  pwm.setPWM(BLK, 0, (BLKcenter - 120));
+  pwm.setPWM(FRK, 0, (FRKcenter - 120));
+  pwm.setPWM(BRA, 0, (BRAcenter - 120));
+  pwm.setPWM(FLA, 0, (FLAcenter - 120));
+  pwm.setPWM(BLA, 0, (BLAcenter - 120));
+  pwm.setPWM(FRA, 0, (FRAcenter - 120));
+}
+
+void kneel() {
+  delay(200);
+  pwm.setPWM(BRA, 0, (BRAcenter + 50));
+  pwm.setPWM(FLA, 0, (FLAcenter + 50));
+  pwm.setPWM(BLA, 0, (BLAcenter + 50));
+  pwm.setPWM(FRA, 0, (FRAcenter + 50)); 
+  delay(200);
+  pwm.setPWM(BRK, 0, (BRKcenter - 100));
+  pwm.setPWM(FLK, 0, (FLKcenter - 100));
+  pwm.setPWM(BLK, 0, (BLKcenter - 100));
+  pwm.setPWM(FRK, 0, (FRKcenter - 100));
+  delay(200);
+  pwm.setPWM(BRA, 0, (BRAcenter + 75));
+  pwm.setPWM(FLA, 0, (FLAcenter + 75));
+  pwm.setPWM(BLA, 0, (BLAcenter + 75));
+  pwm.setPWM(FRA, 0, (FRAcenter + 75)); 
+}
+
+void bow() {
+  delay(200);
+  pwm.setPWM(FLK, 0, (FLKcenter + 100));
+  pwm.setPWM(FRK, 0, (FRKcenter + 100));
+  delay(1000);
+  homePosition();
+}
+
+void sprawl() {
+  delay(200);
+  pwm.setPWM(BLK, 0, (BLKcenter + 50));
+  pwm.setPWM(BRK, 0, (BRKcenter + 50));
+  pwm.setPWM(FLK, 0, (FLKcenter + 50));
+  pwm.setPWM(FRK, 0, (FRKcenter + 50));
+  delay(200);
+  pwm.setPWM(BRA, 0, (BRAcenter - 150));
+  pwm.setPWM(BLA, 0, (BLAcenter - 150));
+  pwm.setPWM(FRA, 0, (FRAcenter - 150));
+  pwm.setPWM(FLA, 0, (FLAcenter - 150));
+}
+
+void layDown() {
+  crouch();
+  delay(200);
+  pwm.setPWM(BLK, 0, (BLKcenter + 50));
+  pwm.setPWM(BRK, 0, (BRKcenter + 50));
+  pwm.setPWM(FLK, 0, (FLKcenter + 50));
+  pwm.setPWM(FRK, 0, (FRKcenter + 50));
+  pwm.setPWM(BRA, 0, (BRAcenter - 40));
+  pwm.setPWM(BLA, 0, (BLAcenter - 40));
+  pwm.setPWM(FRA, 0, (FRAcenter - 40));
+  pwm.setPWM(FLA, 0, (FLAcenter - 40));
+  delay(300);
+  sprawl();
+}
+
+void dock() {
+  crouch();
+  delay(200);
+  pwm.setPWM(BLK, 0, (BLKcenter + 50));
+  pwm.setPWM(BRK, 0, (BRKcenter + 50));
+  pwm.setPWM(FLK, 0, (FLKcenter + 50));
+  pwm.setPWM(FRK, 0, (FRKcenter + 50));
+  pwm.setPWM(BRA, 0, (BRAcenter - 40));
+  pwm.setPWM(BLA, 0, (BLAcenter - 40));
+  pwm.setPWM(FRA, 0, (FRAcenter - 40));
+  pwm.setPWM(FLA, 0, (FLAcenter - 40));
+  delay(300);
+  pwm.setPWM(BRA, 0, (BRAcenter - 70));
+  pwm.setPWM(BLA, 0, (BLAcenter - 70));
+  pwm.setPWM(FRA, 0, (FRAcenter - 70));
+  pwm.setPWM(FLA, 0, (FLAcenter - 70));
+  delay(200);
+  pwm.setPWM(BRA, 0, (BRAcenter - 150));
+  pwm.setPWM(BLA, 0, (BLAcenter - 150));
+  pwm.setPWM(FRA, 0, (FRAcenter - 150));
+  pwm.setPWM(FLA, 0, (FLAcenter - 150));
+  delay(200);
+  pwm.setPWM(BRK, 0, (BRKcenter + 150));
+  pwm.setPWM(BLK, 0, (BLKcenter + 150));
+  pwm.setPWM(FRK, 0, (FRKcenter + 150));
+  pwm.setPWM(FLK, 0, (FLKcenter + 150));
+  delay(200);
+  pwm.setPWM(BRA, 0, (BRAcenter + 130));
+  pwm.setPWM(BLA, 0, (BLAcenter + 130));
+  pwm.setPWM(FRA, 0, (FRAcenter + 130));
+  pwm.setPWM(FLA, 0, (FLAcenter + 130));
+  pwm.setPWM(BRK, 0, (BRKcenter + 260));
+  pwm.setPWM(BLK, 0, (BLKcenter + 260));
+  pwm.setPWM(FRK, 0, (FRKcenter + 260));
+  pwm.setPWM(FLK, 0, (FLKcenter + 260));
+  
+}
+
+void wave() {
+  pwm.setPWM(BLH, 0, (BLHcenter));
+  stand();
+  delay(200);
+  
+  pwm.setPWM(BLK, 0, (BLKcenter + 50));
+  delay(100);
+  pwm.setPWM(BLH, 0, (BLHcenter + 50));
+  delay(100);
+  pwm.setPWM(BLK, 0, (BLKcenter));
+  delay(200);
+  pwm.setPWM(BRK, 0, (BRKcenter + 100));
+  delay(100);
+  pwm.setPWM(BRH, 0, (BRHcenter + 100));
+  delay(100);
+  pwm.setPWM(BRK, 0, (BRKcenter));
+  delay(200);
+  
+  pwm.setPWM(FRK, 0, (FRKcenter + 150));
+  delay(500);
+  pwm.setPWM(FRA, 0, (FRAcenter - 130));
+  delay(400);
+  pwm.setPWM(FRA, 0, (FRAcenter));
+  delay(400);
+  pwm.setPWM(FRA, 0, (FRAcenter - 130));
+  delay(400);
+  pwm.setPWM(FRA, 0, (FRAcenter));
+  delay(400);
+  pwm.setPWM(FRA, 0, (FRAcenter - 130));
+  delay(400);
+  pwm.setPWM(FRA, 0, (FRAcenter));
+  delay(1000);
+  
+  pwm.setPWM(FRK, 0, (BRKcenter));
+  delay(200);
+  
+  pwm.setPWM(BRK, 0, (BRKcenter + 100));
+  delay(100);
+  pwm.setPWM(BRH, 0, (BRHcenter));
+  delay(100);
+  pwm.setPWM(BRK, 0, (BRKcenter));
+  delay(200);
+  
+  pwm.setPWM(BLK, 0, (BLKcenter + 50));
+  delay(100);
+  pwm.setPWM(BLH, 0, (BLHcenter));
+  delay(100);
+  pwm.setPWM(BLK, 0, (BLKcenter));
+}
+
+void dance() {
+  kneel();
+  delay(200);
+  rotateLeft();
+  delay(200);
+  stand();
+  delay(200);
+  kneel();
+  delay(200);
+  rotateRight();
+  delay(200);
+  stand();
+}
+
+void playDead() {
+  stretch();
+  delay(1000);
+  pwm.setPWM(FRA, 0, (FRAcenter - 150));
+  pwm.setPWM(BRA, 0, (BRAcenter + 100));
+  delay(200);
+  pwm.setPWM(FRK, 0, (FRKcenter - 100));
+  pwm.setPWM(BRK, 0, (BRKcenter - 100));
+  delay(200);
+  pwm.setPWM(FRH, 0, (FRHcenter - 230));
+  delay(200);
+  pwm.setPWM(BLH, 0, (BLHcenter + 100));
+  delay(200);
+  pwm.setPWM(BRH, 0, (BRHcenter - 100));
+  delay(200);
+  pwm.setPWM(FLA, 0, (FLAcenter + 100));
+  pwm.setPWM(BRA, 0, (BRAcenter + 100));
+  delay(200);
+  pwm.setPWM(BRH, 0, (BRHcenter + 100));
+  delay(100);
+  pwm.setPWM(BRA, 0, (BRAcenter - 100));
+  delay(500);
+  center();
+  kneel();
+  twitch();
+  delay(500);
+  stretch();
+  delay(2000);
+  sprawl();
+}
+
+void twitch() {
+  delay(500);
+  pwm.setPWM(BRA, 0, (BRAcenter + 60));
+  pwm.setPWM(FLA, 0, (FLAcenter + 60));
+  pwm.setPWM(BLA, 0, (BLAcenter + 60));
+  pwm.setPWM(FRA, 0, (FRAcenter + 60));
+  delay(100);
+  pwm.setPWM(BRA, 0, (BRAcenter + 70));
+  pwm.setPWM(FLA, 0, (FLAcenter + 70));
+  pwm.setPWM(BLA, 0, (BLAcenter + 70));
+  pwm.setPWM(FRA, 0, (FRAcenter + 70));
+  delay(500);
+  pwm.setPWM(BRA, 0, (BRAcenter + 60));
+  pwm.setPWM(FLA, 0, (FLAcenter + 60));
+  pwm.setPWM(BLA, 0, (BLAcenter + 60));
+  pwm.setPWM(FRA, 0, (FRAcenter + 60));
+  delay(100);
+  pwm.setPWM(BRA, 0, (BRAcenter + 70));
+  pwm.setPWM(FLA, 0, (FLAcenter + 70));
+  pwm.setPWM(BLA, 0, (BLAcenter + 70));
+  pwm.setPWM(FRA, 0, (FRAcenter + 70));
+  delay(500);
+  pwm.setPWM(BRA, 0, (BRAcenter + 60));
+  pwm.setPWM(FLA, 0, (FLAcenter + 60));
+  pwm.setPWM(BLA, 0, (BLAcenter + 60));
+  pwm.setPWM(FRA, 0, (FRAcenter + 60));
+  delay(100);
+  pwm.setPWM(BRA, 0, (BRAcenter + 70));
+  pwm.setPWM(FLA, 0, (FLAcenter + 70));
+  pwm.setPWM(BLA, 0, (BLAcenter + 70));
+  pwm.setPWM(FRA, 0, (FRAcenter + 70));
+}
